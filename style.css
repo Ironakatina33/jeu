@@ -1,0 +1,17 @@
+#conteneur {
+    width: 400px;
+    height: 200px;
+    top: 20px;
+    left: 40px;
+    border: 1px solid black;
+    position: absolute; /* position absolue par rapport au conteneur */ 
+    overflow: hidden;
+}
+
+
+.tree {
+    background-color: green;
+    border-radius: 50%;
+    position: absolute;  /* position absolue par rapport au conteneur */
+    transform: translate(-50%, -50%); /* repositionne le point d'encrage au centre */
+}
