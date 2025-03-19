@@ -8,6 +8,19 @@
     <script src="app.js" defer></script>
 </head>
 <body>
-    <div id="conteneur" ></div>
+    <div class="compteurPiece">
+        <div id="compteur">0</div>
+        <p>pièces</p>
+    </div>
+    <button id="removeTreesButton">Supprimer un arbre</button>
+    <section>
+        <div id="conteneur"></div>
+    </section>
+    <div id="shop">
+        <h2>Shop</h2>
+        <button class="treeTypeButton" data-tree-type="type1" data-price="0">Ajouter un arbre vert (Gratuit)</button>
+        <button class="treeTypeButton" id="type2Button" data-tree-type="type2" data-price="20" style="display: none;">Ajouter un arbre rouge (20 pièces)</button>
+        <button class="treeTypeButton" id="type3Button" data-tree-type="type3" data-price="40" style="display: none;">Ajouter un arbre bleu (40 pièces)</button>
+    </div>
 </body>
 </html>

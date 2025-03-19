@@ -1,8 +1,11 @@
+body{
+    padding: 15px 30px;
+}
 #conteneur {
-    width: 400px;
-    height: 200px;
-    top: 20px;
-    left: 40px;
+    width: 800px;
+    height: 500px;
+    top: 6%;
+    left: 30%;
     border: 1px solid black;
     position: absolute; /* position absolue par rapport au conteneur */ 
     overflow: hidden;
@@ -14,4 +17,46 @@
     border-radius: 50%;
     position: absolute;  /* position absolue par rapport au conteneur */
     transform: translate(-50%, -50%); /* repositionne le point d'encrage au centre */
+}
+
+.compteurPiece{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+}
+
+#shop {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.treeTypeButton{
+    padding: 8px;
+    border: 1px solid black;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 200px; /* largeur fixe pour les boutons */
+    text-align: center; /* centrer le texte */
+}
+
+.tree.type1 {
+    background-color: green;
+}
+
+.tree.type2 {
+    background-color: red;
+}
+
+.tree.type3 {
+    background-color: blue;
+}
+
+.treeTypeButton.disabled {
+    background-color: #5f5f5f;
+    opacity: 0.5;
+    cursor: not-allowed;
 }
