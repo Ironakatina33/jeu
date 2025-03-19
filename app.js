@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', (event) => {
     let compteur = 0;
+     let co2Accumule = 0;
+     let o2Emis = 0;
     const compteurElement = document.getElementById('compteur');
     const content = document.getElementById('conteneur');
     const removeTreesButton = document.getElementById('removeTreesButton');
@@ -10,12 +12,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
     let treeCount = 0;
     let removeMode = false;
     let selectedTreeType = null;
+    let timerStarted = false;
+    let firstType1Tree = true;
 
     const treePrices = {
         type1: 0,
         type2: 20,
         type3: 40
     };
+
+    const initialSize = 5;
+    const maxSize = 30;
+    const growthDuration = 500; // 500 years
+    const growthInterval = 10; // 10 milliseconds
+    const growthStep = (maxSize - initialSize) / (growthDuration * 1000 / 8.3 / growthInterval);
 
     // Initialiser les prix des boutons au chargement de la page
     updateAllButtonTexts();
@@ -40,12 +50,19 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // Gérer le clic dans le conteneur pour ajouter un arbre
     function handleContentClick(event) {
         if (selectedTreeType && event.target === content) {
-            const treePrice = treePrices[selectedTreeType];
+            let treePrice = treePrices[selectedTreeType];
+            if (selectedTreeType === 'type1' && !firstType1Tree) {
+                treePrice = 5;
+            }
             if (compteur >= treePrice) {
                 compteur -= treePrice;
                 compteurElement.textContent = compteur;
                 addTree(event.clientX, event.clientY, selectedTreeType);
-                increasePrice(selectedTreeType);
+                if (selectedTreeType === 'type1' && firstType1Tree) {
+                    firstType1Tree = false;
+                    treePrices.type1 = 5; // Mettre à jour le prix pour les arbres suivants
+                    updateButtonText('type1'); // Mettre à jour le texte du bouton
+                }
                 updateButtonStates();
                 if (selectedTreeType === 'type1') {
                     type2Button.style.display = 'block';
@@ -66,32 +83,35 @@ document.addEventListener('DOMContentLoaded', (event) => {
         treeCount++;
 
         const rect = content.getBoundingClientRect();
-        const treeX = x - rect.left + 20;
-        const treeY = y - rect.top + 20;
+        const treeX = x - rect.left + 2;
+        const treeY = y - rect.top + 2;
 
-        const treeRadius = 20;
-        tree.style.left = treeX - treeRadius + 'px';
-        tree.style.top = treeY - treeRadius + 'px';
-
-        tree.style.width = treeRadius * 2 + 'px';
-        tree.style.height = treeRadius * 2 + 'px';
+        tree.style.left = treeX - initialSize / 2 + 'px';
+        tree.style.top = treeY - initialSize / 2 + 'px';
+        tree.style.width = initialSize + 'px';
+        tree.style.height = initialSize + 'px';
 
         content.appendChild(tree);
 
+        // Faire grandir l'arbre
         let growCount = 0;
         const growInterval = setInterval(() => {
-            if (growCount < 3) {
-                growTree(tree);
+            if (growCount < growthDuration * 1000 / 8.3 / growthInterval) {
+                growTree(tree, growthStep);
                 growCount++;
             } else {
                 clearInterval(growInterval);
+                tree.style.backgroundColor = 'brown';
+                tree.isBrown = true; // Marquer l'arbre comme marron
+                clearInterval(tree.coinInterval); // Arrêter l'intervalle qui ajoute des pièces
+
+                // Set a random time between 2 and 500 years to die
+                const deathTime = Math.random() * (500 - 2) + 2;
                 setTimeout(() => {
-                    tree.style.backgroundColor = 'brown';
-                    tree.isBrown = true; // Marquer l'arbre comme marron
-                    clearInterval(tree.coinInterval); // Arrêter l'intervalle qui ajoute des pièces
-                }, 10000); // Attendre 10 secondes après la fin de la croissance
+                    tree.remove();
+                }, deathTime * 1000 / 8.3);
             }
-        }, time);
+        }, growthInterval);
 
         checkCollisions(tree);
 
@@ -140,10 +160,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     // Faire grandir l'arbre
-    function growTree(tree) {
-        const growFactor = 1.2;
-        tree.style.width = parseInt(tree.style.width) * growFactor + 'px';
-        tree.style.height = parseInt(tree.style.height) * growFactor + 'px';
+    function growTree(tree, growthStep) {
+        const newSize = parseFloat(tree.style.width) + growthStep;
+        const deltaSize = growthStep / 2;
+        tree.style.width = newSize + 'px';
+        tree.style.height = newSize + 'px';
+        tree.style.left = parseFloat(tree.style.left) - deltaSize + 'px';
+        tree.style.top = parseFloat(tree.style.top) - deltaSize + 'px';
 
         checkCollisions(tree);
     }
@@ -171,12 +194,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         );
     }
 
-    // Augmenter le prix de l'arbre de 20% et mettre à jour le texte du bouton
-    function increasePrice(treeType) {
-        treePrices[treeType] = Math.round(treePrices[treeType] * 1.20);
-        updateButtonText(treeType);
-    }
-
     // Mettre à jour le texte du bouton avec le nouveau prix
     function updateButtonText(treeType) {
         const button = document.querySelector(`.treeTypeButton[data-tree-type="${treeType}"]`);
@@ -185,7 +202,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         button.setAttribute('data-price', price);
         switch (treeType) {
             case 'type1':
-                buttonText = `Ajouter un arbre vert (Gratuit)`;
+                buttonText = `Ajouter un arbre vert (${firstType1Tree ? 'Gratuit' : '5 pièces'})`;
                 break;
             case 'type2':
                 buttonText = `Ajouter un arbre rouge (${price} pièces)`;
@@ -215,5 +232,15 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 button.classList.add('disabled');
             }
         });
+    }
+
+    // Fonction pour démarrer le timer des années
+    function startTimer() {
+        let years = 0;
+        const yearsElement = document.getElementById('years');
+        setInterval(() => {
+            years += 0.083;
+            yearsElement.textContent = `Années écoulées: ${years.toFixed(2)}`;
+        }, 10);
     }
 });
