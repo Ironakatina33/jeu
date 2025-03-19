@@ -1,7 +1,64 @@
+import * as Foret from './foret.js';
+
+console.log("main=", Foret.nom);
+Foret.direBonjour("foret");
+
+//todo: remplacer les valeurs par des constantes, et les placer ces constante en début de prog, f
+// interval de temps d'affichage & d'accroissement (affichage du timer + mise à jour de l'arbre...)
+// interval du temps de vie de l'arbre (nb d'années par interval de temps du timer)
+// revoir le calcul des collisions (avec les rayons et la distances entre les troncs)
+// créer une classe foret et une classe arbre dans des modules séparés
+
+
+// 1 timer foret (vs 1 timer / arbre)
+// + limite le nombre de ressource du navigateur
+// + utile aussi pour afficher les années
+// + evite les conflis d'accès lors de la mise à jour des compteurs (ex: 2 arbres veullent mettre à jour le compteur de O2 en même temps)
+// + évite de passer en paramètre le compteur de O2, de CO2 à chaque arbre (c'est la foret qui gère les compteurs en demandant à chaque arbre de se mettre à jour)
+// - l'ajout d'un arbre (son affichage) sera ascynchrone avec le click mais synchrone avec le timer
+// = les deux peuvent être syncrhone si la période du timer est sufffiament petite
+
+
+// foret 
+
+// ATTRIBUTS
+// div conteneur (rectangle blanc)
+// * avec une taille fixe (ex: 1000px x 1000px)
+// * echelle entre sa surface de sa div et la surface de la terre (cf diametre max de la couronne de l'arbre que l'on doit voir disctinctement)
+// compteur de pièces, CO2, O2, volume de bois
+// interval du timer qui met à jour de temps d'affichage & d'accroissement (affichage du timer + mise à jour de l'arbre...)
+// ex 1000ms (1s) ou bien 1000/8 ms
+// interval du temps de vie de l'arbre (nb d'années par interval de temps du timer)
+// ex 8 ans ou bien 1 an
+// timer 
+    // tableau d'arbres
+
+// METHODES
+// ajouter un arbre au click
+// grandir les arbres (tous les arbres) à chaque interval de temp d'accroissement
+// * mise à jour de l'affichage (compteurs en fonction des val retourné par les arbres, dessins des arbres)
+// * détection de la fin de vie de l'arbre (marron)
+// * détection des colisions
+
+// arbre
+
+// ATTRIBUTS
+// div arbre (cercle)
+// * avec une taille 
+// * echelle entre sa surface de sa div et la surface de la terre (cf diametre max de la couronne de l'arbre que l'on doit voir disctinctement)
+// données de croissances (tableau avec 3 lignes CO2, O2, volume de bois et autant de colonnes que d'années ou interval d'année ou interval d'année couvrant la durée de vie de l'arbre)
+// age de l'arbre 
+
+// METHODES
+// grandir l'arbre :
+// * prend en parmètre le nb d'années écoulées
+// * retourne les valeurs de CO2, O2, volume de bois généré durant cette période
+// * met à jour le rendu (dessin)
+
 document.addEventListener('DOMContentLoaded', (event) => {
     let compteur = 0;
-     let co2Accumule = 0;
-     let o2Emis = 0;
+    let co2Accumule = 0;
+    let o2Emis = 0;
     const compteurElement = document.getElementById('compteur');
     const content = document.getElementById('conteneur');
     const removeTreesButton = document.getElementById('removeTreesButton');
@@ -14,6 +71,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     let selectedTreeType = null;
     let timerStarted = false;
     let firstType1Tree = true;
+    const trees = [];
 
     const treePrices = {
         type1: 0,
@@ -32,7 +90,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     updateButtonStates();
 
     // Activer le mode de suppression lorsqu'on clique sur le bouton
-    removeTreesButton.addEventListener('click', function() {
+    removeTreesButton.addEventListener('click', function () {
         removeMode = true;
         selectedTreeType = null;
         content.removeEventListener('click', handleContentClick);
@@ -40,7 +98,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // Sélectionner le type d'arbre lorsqu'on clique sur un bouton de type d'arbre
     treeTypeButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             selectedTreeType = this.getAttribute('data-tree-type');
             removeMode = false;
             content.addEventListener('click', handleContentClick);
@@ -62,6 +120,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
                     firstType1Tree = false;
                     treePrices.type1 = 5; // Mettre à jour le prix pour les arbres suivants
                     updateButtonText('type1'); // Mettre à jour le texte du bouton
+                    if (!timerStarted) {
+                        startTimer(); // Démarrer le timer lorsque le premier arbre de type 1 est ajouté
+                        timerStarted = true;
+                    }
                 }
                 updateButtonStates();
                 if (selectedTreeType === 'type1') {
@@ -75,6 +137,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             }
         }
     }
+
 
     // Ajouter un arbre
     function addTree(x, y, treeType) {
@@ -125,7 +188,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         tree.coinInterval = coinInterval;
 
-        tree.addEventListener('click', function(event) {
+        tree.addEventListener('click', function (event) {
             if (removeMode) {
                 clearInterval(tree.coinInterval);
                 if (tree.isBrown) {
@@ -138,6 +201,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
             }
             event.stopPropagation();
         });
+
+        // Ajouter l'arbre à la liste des arbres avec son âge initial
+        trees.push({ element: tree, age: 0 });
     }
 
     // Ajouter des pièces en fonction du type d'arbre détruit
@@ -234,13 +300,41 @@ document.addEventListener('DOMContentLoaded', (event) => {
         });
     }
 
+    // Fonction pour obtenir la valeur de CO2 en fonction de l'âge de l'arbre
+    function getCO2Value(age) {
+        if (age >= 1 && age < 10) {
+            return 10;
+        } else if (age >= 10 && age < 50) {
+            return 25;
+        } else if (age >= 50 && age < 200) {
+            return 40;
+        } else if (age >= 200 && age < 500) {
+            return 30;
+        } else {
+            return 0;
+        }
+    }
+
+    // Fonction pour mettre à jour le compteur de CO2
+    function updateCO2Counter() {
+        let totalCO2 = 0;
+        trees.forEach(tree => {
+            totalCO2 += getCO2Value(tree.age);
+        });
+        document.getElementById('co2').innerText = `CO2 accumulé par an: ${totalCO2}kg`;
+    }
+
     // Fonction pour démarrer le timer des années
     function startTimer() {
         let years = 0;
         const yearsElement = document.getElementById('years');
         setInterval(() => {
-            years += 0.083;
+            years += 8.3; // Incrémenter les années
             yearsElement.textContent = `Années écoulées: ${years.toFixed(2)}`;
-        }, 10);
+            trees.forEach(tree => {
+                tree.age += 8.3; // Incrémenter l'âge de chaque arbre
+            });
+            updateCO2Counter();
+        }, 1000); // Mettre à jour toutes les secondes
     }
 });
